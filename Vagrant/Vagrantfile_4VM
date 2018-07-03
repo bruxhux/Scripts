@@ -6,9 +6,13 @@ Vagrant.configure("2") do |config|
 	        domain.memory = 1024
 	        domain.cpus = 1
 			proxy.vm.network :private_network, :ip =>'10.143.20.2'
-			config.vm.provision "shell", inline: <<-SHELL
+			proxy.vm.provision "shell", inline: <<-SHELL
 			 yum -y update
-			 yum -y install nginx
+			 
+			yum -y install epel-release
+			yum -y install nginx
+			systemctl start nginx
+			systemctl enable nginx
 			SHELL
 		end
 		config.vm.provider :libvirt do |libvirt|
@@ -22,7 +26,7 @@ Vagrant.configure("2") do |config|
 			domain.memory = 1024
 			domain.cpus = 1
 			web.vm.network :private_network, :ip =>'10.143.20.3'
-			config.vm.provision "shell", inline: <<-SHELL
+			web.vm.provision "shell", inline: <<-SHELL
 			 yum -y update
 			 yum -y install git
 			 yum -y install golang
@@ -39,9 +43,9 @@ Vagrant.configure("2") do |config|
 			domain.memory = 1024
 			domain.cpus = 1 
 			db.vm.network :private_network, :ip => '10.143.20.4'
-			config.vm.provision "shell", inline: <<-SHELL
+			db.vm.provision "shell", inline: <<-SHELL
 			 yum -y update
-			 yum -y install postgreSQL
+			 yum -y install postgresql-server postgresql-contrib
 			SHELL
 		end
 		config.vm.provider :libvirt do |libvirt|
@@ -55,9 +59,11 @@ Vagrant.configure("2") do |config|
 			domain.memory = 1024
 			domain.cpus = 1
 			monitor.vm.network :private_network, :ip => '10.143.20.5'
-			config.vm.provision "shell", inline: <<-SHELL
+			monitor.vm.provision "shell", inline: <<-SHELL
 			 yum -y update
 			 yum -y install httpd
+			systemctl start httpd
+			systemctl enable httpd
 			SHELL
 		end
 		config.vm.provider :libvirt do |libvirt|
