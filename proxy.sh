@@ -2,10 +2,12 @@
 
 yum -y update
 yum -y install nano
+
 yum -y install epel-release
 yum -y install nginx
 systemctl start nginx
 systemctl enable nginx
+<<<<<<< HEAD
 cd /etc/nginx/
 cat <<EOF > conf.d{
 	location /go-interns {
@@ -15,3 +17,4 @@ cat <<EOF > conf.d{
 EOF
 systemctl restart nginx
 systemctl enable nginx
+
