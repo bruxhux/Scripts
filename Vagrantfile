@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
 	        domain.memory = 1024
 	        domain.cpus = 1
 			proxy.vm.network :private_network, :ip =>'10.143.20.2'
-			config.vm.provision "shell", path: "proxy.sh"
+			proxy.vm.provision "shell", path: "proxy.sh"
 		end
 		config.vm.provider :libvirt do |libvirt|
 			libvirt.driver = "kvm"
@@ -19,7 +19,7 @@ Vagrant.configure("2") do |config|
 			domain.memory = 1024
 			domain.cpus = 1
 			web.vm.network :private_network, :ip =>'10.143.20.3'
-			config.vm.provision "shell", path: "web.sh"
+			web.vm.provision "shell", path: "web.sh"
 		end
 		config.vm.provider :libvirt do |libvirt|
 			libvirt.driver = "kvm"
@@ -32,7 +32,7 @@ Vagrant.configure("2") do |config|
 			domain.memory = 1024
 			domain.cpus = 1 
 			db.vm.network :private_network, :ip => '10.143.20.4'
-			config.vm.provision "shell", path: "db.sh"
+			db.vm.provision "shell", path: "db.sh"
 		end
 		config.vm.provider :libvirt do |libvirt|
 			libvirt.driver = "kvm"
@@ -45,7 +45,7 @@ Vagrant.configure("2") do |config|
 			domain.memory = 1024
 			domain.cpus = 1
 			monitor.vm.network :private_network, :ip => '10.143.20.5'
-			config.vm.provision "shell", path: "monitor.sh"
+			monitor.vm.provision "shell", path: "monitor.sh"
 		end
 		config.vm.provider :libvirt do |libvirt|
 			libvirt.driver = "kvm"
