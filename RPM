@@ -1,0 +1,590 @@
+RPM
+
+
+Install rpm-build Package
+yum install rpm-build
+
+RPM Build Directories
+rpmbuild
+
+cd /root/rpmbuild/
+
+ll
+
+drwxr-xr-x. 2 root root 4096 Feb 4 12:21 BUILD/
+
+drwxr-xr-x. 2 root root 4096 Feb 4 12:21 BUILDROOT/
+
+drwxr-xr-x. 2 root root 4096 Feb 4 12:21 RPMS/
+
+drwxr-xr-x. 2 root root 4096 Feb 4 12:21 SOURCES/
+
+drwxr-xr-x. 2 root root 4096 Feb 4 12:21 SPECS/
+
+drwxr-xr-x. 2 root root 4096 Feb 4 12:21 SRPMS/
+
+Go to SOURCES
+
+cd SOURCES
+
+Hear copy the aplication go-interns files
+
+Create the spec file the main.spec (Cod Sample)
+
+Code sample
+Name:		main
+Version:	1
+Release:	1
+Summary:	aplicatia main
+License: 	FIXME
+
+%description
+Primul rmp pentru aplicatia main
+
+%prep
+
+%build
+./build.sh
+
+%install
+mkdir -p %{buildroot}/opt/go-interns/
+mkdir -p %{buildroot}/opt/go-interns/templates/
+mkdir -p %{buildroot}/etc/systemd/system
+install -m 755 main %{buildroot}/opt/go-interns/main
+install -m 755 templates/* %{buildroot}/opt/go-interns/templates/
+install -m 755 conf.json %{buildroot}/opt/go-interns/conf.json
+install -m 755 go-interns.service %{buildroot}/etc/systemd/system/
+
+%files
+/opt/go-interns/main
+/etc/systemd/system/go-interns.service
+/opt/go-interns/templates/*
+/opt/go-interns/conf.json
+
+%post
+/ser/bin/getend passwd gouser || /usr/sbin/useradd -r -d /opt/go-interns/main -s /sbin/nologin gouser
+systemctl daemont-reload
+systemctl start go-interns.service
+systemctl enable go-interns.service
+
+
+%changelog
+
+#########################################################################
+
+Scriptul Bash
+Prima provocare a fost sa creem un script bash care sa ne monitorizeze consumul de resusre de pe masina noastra. Acest script va fi rulat de cron la fiecare 5 min. Fisierel genereate vor fi stocate in /var/log/systemusage/
+
+Acest Script va verifica daca fiecare din fisiere exista , daca nu le creaza dupa care prin anumite comenzi bash va scrie in fisiere datele care ne intereseaza.
+Code sample
+#!/bin/bash
+if [[ -f "/var/log/systemusage/process.log" ]]
+then
+echo "Exista fisierul"
+else
+touch /var/log/systemusage/process.log
+echo "am creat fisierul process.log"
+fi
+#aici logam procesele
+date +%d %b %Y %H : "%M":"%S":" " >> /var/log/systemusage/process.log
+top -b -n1 -0 "%CPU" | head -n12 | tail -n5 | awk '{print$12" " $1 " " $9}' >>/var/log/systemusage/process.log
+
+
+###############################################################################
+
+NEW PAGE
+Pentru a crea o noua pagina pe acest site treube facute urmatoarele;
+
+Accesam urmaporul folder
+
+cd /home/vagrant/thems/Mysite/content
+
+Crem un nou folder
+
+mkdir “nume”
+
+Intra in acest repo
+
+cd “nume”
+
+Aici creem cu vim un nou index
+
+vim _index.md
+
+In acest vim scriem la inceput
+
+— title: “RPM”
+
+date: 2018-01-27T15:42:17+01:00
+
+anchor: “RPM”
+
+weight: 10
+
+—
+
+In contunare scrim ce vrem ca continut
+
+#############################################################3
+
+
+Vagrantfile
+Cu ajutorul programului Vagrant o sa crem un mediu de test pe care il vom folosi.pecificatiile sunt dupa cum urmeaza:
+
+Toate VM-urile trebuie sa aiba si un adaptor pentru o retea interna. Reteaua folosita pentru adaptorul intern este: 10.143.20.0/24 Instalarea de pachete si repositories trebuie facuta prin Vagrantfile. Tot procesul de creare a masinilor trebuie sa fie automatizat.
+
+Masina nr.1:
+
+Hostname: proxy
+CPU: 1
+RAM: 1GB
+IP: 10.143.20.2
+OS-ul sa aiba toate update-urile instalate.
+Instalati nginx
+Masina nr.2:
+
+Hostname: web
+CPU: 1
+RAM: 1GB
+IP: 10.143.20.3
+OS-ul sa aiba toate update-urile instalate.
+Instalati git si golang
+Masina nr.3:
+
+Hostname: db
+CPU: 1
+RAM: 1GB
+IP: 10.143.20.4
+OS-ul sa aiba toate update-urile instalate.
+Instalati postgresql
+Masina nr.4:
+
+Hostname: monitor
+CPU: 1 
+RAM: 1GB
+IP: 10.143.20.5
+OS-ul sa aiba toate update-urile instalate.
+Instalati httpd
+Pentru creere vom folosi Vagrant 2.1.2, si vom folosi libvirt si providerul kvm.
+Code sample
+Vagrant.configure("2") do |config|
+
+	config.vm.define :proxy do |proxy|
+	  proxy.vm.box = "centos/7"
+	  proxy.vm.provider :libvirt do |domain|
+	        domain.memory = 1024
+	        domain.cpus = 1
+			proxy.vm.network :private_network, :ip =>'10.143.20.2'
+			proxy.vm.provision "shell", path: "proxy.sh"
+		end
+		config.vm.provider :libvirt do |libvirt|
+			libvirt.driver = "kvm"
+			libvirt.connect_via_ssh = false
+		end
+	end
+	config.vm.define :web do |web|
+		web.vm.box= "centos/7"
+		web.vm.provider "libvirt" do |domain|
+			domain.memory = 1024
+			domain.cpus = 1
+			web.vm.network :private_network, :ip =>'10.143.20.3'
+			web.vm.provision "shell", path: "web.sh"
+		end
+		config.vm.provider :libvirt do |libvirt|
+			libvirt.driver = "kvm"
+			libvirt.connect_via_ssh = false
+		end
+	end
+	config.vm.define :db do |db|
+		db.vm.box= "centos/7"
+		db.vm.provider "libvirt" do |domain|
+			domain.memory = 1024
+			domain.cpus = 1 
+			db.vm.network :private_network, :ip => '10.143.20.4'
+			db.vm.provision "shell", path: "db.sh"
+		end
+		config.vm.provider :libvirt do |libvirt|
+			libvirt.driver = "kvm"
+			libvirt.connect_via_ssh = false
+		end
+	end
+	config.vm.define :monitor do |monitor|
+		monitor.vm.box="centos/7"
+		monitor.vm.provider "libvirt" do |domain|
+			domain.memory = 1024
+			domain.cpus = 1
+			monitor.vm.network :private_network, :ip => '10.143.20.5'
+			monitor.vm.provision "shell", path: "monitor.sh"
+		end
+		config.vm.provider :libvirt do |libvirt|
+			libvirt.driver = "kvm"
+			libvirt.connect_via_ssh = false
+		end
+	end
+end
+
+############################################################################################
+
+Nginx
+
+Astazi vom instala un web server si vom servi o pagina de internet pe locatia /stagiu.Vom urmari urmatori pasii:
+
+1) Install an editor: yum install -y vim
+
+2) (OPT)Install nginx: yum install -y epel-release yum -y install nginx
+
+3) Start nginx: systemctl start nginx systemctl enable nginx
+
+4) Configure NGINX cd /etc/nginx
+
+5) Open nginx.conf and config your server vim nginx.conf (mai jos avem ngnx.conf facut de mine) 6) Dupa ce am terminat de configurat restartam nginx. systemctl restart nginx 7) Acum intram pe browser si testam situ. 10.143.20.2 8) Create certificate directory mkdir -p /etc/nginx/ssl/theos.in
+
+9) Move to certificate directory cd /etc/nginx/ssl/theos.in
+
+10) Create ssl private key openssl genrsa -des3 -out self-ssl.key 2048
+
+11) Create a certificate signing request (CSR) openssl req -new -key self-ssl.key -out self-ssl.csr
+
+12) Remove passphrase for nginx cp -v self-ssl.{key,original} openssl rsa -in self-ssl.original -out self-ssl.key rm -v self-ssl.original
+
+13) Create certificate openssl x509 -req -days 365 -in self-ssl.csr -signkey self-ssl.key -out self-ssl.crt
+
+14) Change directory to: cd /etc/nginx/
+
+15) Add a new server block in nginx config vim /etc/nginx/sites-enabled/nginx.conf 15) Restart nginx and test again systemctl restart nginx 16) Ca sa facem redirect trebuie sa modificam din nou nginx.conf location /go-interns { proxy_pass http://10.143.20.3:18080 } 17) Restart nginx and test it again systemctl restart nginx Surse: https://www.godaddy.com/garage/how-to-install-and-configure-nginx-on-centos-7/ https://wiki.centos.org/HowTos/SELinux https://www.cyberciti.biz/faq/nginx-self-signed-certificate-tutorial-on-centos-redhat-linux/ https://www.linode.com/docs/web-servers/nginx/how-to-configure-nginx/
+
+Code sample
+
+# For more information on configuration, see:
+#   * Official English Documentation: http://nginx.org/en/docs/
+#   * Official Russian Documentation: http://nginx.org/ru/docs/
+
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log;
+pid /run/nginx.pid;
+
+# Load dynamic modules. See /usr/share/nginx/README.dynamic.
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile            on;
+    tcp_nopush          on;
+    tcp_nodelay         on;
+    keepalive_timeout   65;
+    types_hash_max_size 2048;
+
+    include             /etc/nginx/mime.types;
+    default_type        application/octet-stream;
+
+    # Load modular configuration files from the /etc/nginx/conf.d directory.
+    # See http://nginx.org/en/docs/ngx_core_module.html#include
+    # for more information.
+    include /etc/nginx/conf.d/*.conf;
+    server {
+        listen       80;
+        server_name       10.143.20.2;
+#        server_name  myblog.com www.myblog.com;
+	return 301 https://$server_name$request_uri;
+#        root         /usr/share/nginx/html;
+#
+#	ssl on;
+#	ssl_certificate /etc/nginx/ssl/myblog.crt;	
+#	ssl_certificate_key /etc/nginx/ssl/myblog.key;
+#
+ #       # Load configuration files for the default server block.
+  #      include /etc/nginx/default.d/*.conf
+ #
+#       location / {
+ #       }
+#
+ #       error_page 404 /404.html;
+  #          location = /40x.html {
+   #   }
+#
+ #       error_page 500 502 503 504 /50x.html;
+  #          location = /50x.html {
+   #     }
+    }
+server{
+	listen 443;
+	listen 10.143.20.2:443 ssl http2;
+	server_name 10.143.20.2;	
+	root /usr/share/nginx/html;
+	ssl on;
+	ssl_certificate /etc/nginx/ssl/myblog.crt;
+	ssl_certificate_key /etc/nginx/ssl/myblog.key;
+
+	ssl_session_cache shared:SSL:20m;
+
+	ssl_session_timeout 60m;
+	ssl_prefer_server_ciphers on;
+
+	ssl_ciphers ECDH+AESGCM:ECDH+AES256:ECDH+AES128:DHE+AES128:!ADH:!AECDH:!MD5;
+	
+
+	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+
+	ssl_stapling on;
+	ssl_stapling_verify on;
+	ssl_trusted_certificate /etc/nginx/ssl/myblog.crt;
+	resolver 8.8.8.8 8.8.4.4;
+
+	add_header Strict-Transport-Security "max-age=31536000" always;
+
+	location / {
+		root /usr/share/nginx;
+	        index stagiu.html;
+		return 301 https://$server_name/stagiu$request_uri;
+		
+	}
+	location /stagiu{
+	root /usr/share/nginx;
+	index stagiu.html;
+}
+  	location /go-interns{
+		proxy_pass http://10.143.20.3:18080;
+}
+}
+#
+
+# Settings for a TLS enabled server.
+#
+#    server {
+#        listen       443 ssl http2 default_server;
+#        listen       [::]:443 ssl http2 default_server;
+#        server_name  _;
+#        root         /usr/share/nginx/html;
+#
+#        ssl_certificate "/etc/pki/nginx/server.crt";
+#        ssl_certificate_key "/etc/pki/nginx/private/server.key";
+#        ssl_session_cache shared:SSL:1m;
+#        ssl_session_timeout  10m;
+#        ssl_ciphers HIGH:!aNULL:!MD5;
+#        ssl_prefer_server_ciphers on;
+#
+#        # Load configuration files for the default server block.
+#        include /etc/nginx/default.d/*.conf;
+#
+#        location / {
+#        }
+#
+#        error_page 404 /404.html;
+#            location = /40x.html {
+#        }
+#
+#        error_page 500 502 503 504 /50x.html;
+#            location = /50x.html {
+#        }
+# }
+}
+###########################################################################################
+
+Postgresql
+
+Pe VM3 DB vom initializa o instanta de baza de date. Putem folosi locatia default PostgreSQL:
+
+1) Vom initializa o baza de date:
+
+postgresql-setup initdb
+2) Vom porni postgresql
+
+systemctl start postgresql
+
+
+systemctl enable postgresql
+3) Vom schimba userul in posgres
+
+su - postgres
+5) Intram in posgres
+
+psql postgres
+6) In instanta noastra default, vom crea o baza de date cu numele “2018”
+
+psql createdb 2018
+7) Intra in aceasta baza de date
+
+psql -d 2018
+8) Acum in baza de date “2018” vom crea un tabel “calendar” - care sa aiba structura de coloane - id, zi, weekday, luna, an:
+
+CREATE TABLE calendar (id int, weekday varchar, zi varchar, luna varchar, an varchar);
+9) Acum ca avem data de baze inseram date in aceasta data de baze
+
+INSERT INTO calendar VALUES (aici valorile)
+10) Acum avem baza de date creata putem vedea tabelul
+
+select * from calendar;
+11) Acum creem un scritp Bash care se conecteaza la instanta noastra de baza de date, da DROP la baza de date “2018” si tot ce contine, si va crea baza de date si structura ei in mod automat; Printr-un loop vom insera automat toate valorile dintr-o luna
+
+Printr-un loop vom actualiza toate zilele - weekdays, in functie de data calendaristica, pentru toate randurile din tabel, acest script il aveti in sectiunea Cod Sample.
+
+Code sample
+
+#!/bin/bash
+
+yum -y update
+yum -y install postgresql-server postgresql-contrib
+
+postgresql-setup initdb
+systemctl start postgresql
+systemctl enable postgresql
+
+passwd postgres
+su - postgres
+psql -d template1 -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+
+psql postgres
+
+psql -U postgres -c "DROP DATABASE \"$db\""
+psql -U postgres -c "CREATE DATABASE \"$db\""
+psql -U postgres -d 2018 -c ""
+echo "Data created"
+
+# set variables
+nr_days=$(cal $1 $2 | egrep -v [a-z] |wc -w)
+printf -v month "%02d" $1
+year=$2
+id=$3
+echo "Variables set"
+
+# insert data
+for day in $(seq -f "%02g" 1 $nr_days)
+do
+        psql -U postgres -d 2018 -c "INSERT INTO calendar VALUES ($id, '-', '$day', '$month', '$year');"
+        (( id += 1 ))
+done
+echo "Data inserted"
+
+# update data
+psql -U postgres -d 2018 -c "UPDATE calendar ca SET weekday = to_char(to_date(concat(c.zi, ' ', c.luna, ' ', c.an), 'DD-MM-YYYY'), 'Day') from calendar c where ca.id = c.id;"
+echo "Data updated"
+
+#######################################################################################
+
+Go-interns APP
+
+Instalam aplicatia go-interns pe server-ul web si sa configuram un reverse proxy in nginx.
+
+1) Cream un folder
+
+mkdir /home/vagrant/go-interns/
+
+2) InTram in acel folder
+
+cd /home/vagrant/go-interns/
+3)Dupa vom da git clone la cod.
+
+git clone https://github.com/aso930/go-interns.git
+
+4)Dupa vom face build la aplicatie folosind scriptul build.sh.
+
+./build
+
+5)dupa ce aplicatia a fost compilata trebuie sa o configuram folosing conf.json. Aici trebuie specificate datele de conectare la baza de date postgresql.
+
+vim conf.json
+
+"DBName": "2018",
+"user": "postgres",
+"Password": "postgres",
+"Host": "10.143.20.4",
+"Port": "5432"
+6)Dupa rulam aplicatia main
+
+./main
+
+7)Daca am confirmat ca aplicatia porneste si functioneaza accesand linkul: http://web:18080, vom trece la configurarea unui reverse proxy folosind nginx. Endpoint-ul ce va fi accesat va fi https://proxy/go-interns, care va actiona ca reverse proxy pentru http://web:18080/
+
+Intra in proxy si facem urmatoarele:
+    -cd /etc/nginx/
+    cat <<EOF > conf.d{
+        location /go-interns {
+            proxy_pass http://10.143.20.3:18080
+        }
+    }
+    EOF
+8) Restartam nginx
+
+systemctl restart nginx
+9) Creem un serviciu de systemed pe we care sa fie folosit pt oprirea si pornirea aplicatiei go -interns.
+
+cd /etc/systemd/system/
+vim go-interns.service
+10)In acest fisier scriem urmatoarele
+
+[Unit]
+Description=go-interns-main
+
+
+[Service]
+ExecStart=/home/vagrant/go-interns/main
+WorkingDirectory=/home/vagrant/go-interns
+KillMode=process
+Type=simple
+StandardError=syslog
+StandardOutput=syslog
+SyslogIdentifier=syslog
+
+
+[Install]
+WantedBy=default.target
+
+11) Acum rulam acest fisier
+
+systemctl start go-interns.service
+12) Verificam daca functioneaza
+
+systemctl status go-interns.service
+
+13) Un scritp cu toti acesti pasi aveti in Cod Sample
+
+Code sample
+#!/bin/bash
+
+yum -y update
+yum -y install git
+yum -y install golang
+
+git clone https://github.com/aso930/go-interns.git
+cd /home/vagrant/go-interns/
+./build.sh
+cat <<EOF > conf.json
+{
+	"DBName": "2018",
+	"user": "postgres",
+	"Password": "postgres",
+	"Host": "10.143.20.4",
+	"Port": "5432"
+}
+EOF
+cd /etc/systemd/system/
+
+cat <<EOF > go-interns.service
+{
+	[Unit]
+	Description=go-interns-main
+
+	[Service]
+	ExecStart=/home/vagrant/go-interns/main
+	WorkingDirectory=/home/vagrant/go-interns
+	KillMode=process
+	Type=simple
+	StandardError=syslog
+	StandardOutput=syslog
+	SyslogIdentifier=syslog
+
+	[Install]
+	WantedBy=default.target
+
+}
+EOF
