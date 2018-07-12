@@ -588,3 +588,131 @@ cat <<EOF > go-interns.service
 
 }
 EOF
+
+
+#############################################################
+
+Astazi trebuie sa configuram firewall-ul din CentOS (firewalld).Pentru configul de firewall vreau sa avem o zona custom, o vom numi "yonder".
+
+By default zona va avea allow pentru serviciul de ssh, dhcp si snmp pe toate cele 4 VM-uri.
+
+Pe celelalte masini vom adauga urmatoarele reguli in zona yonder:
+
+Proxy: Serviciul http si https
+Web: - Serviciu custom pentru portul TCP/18080 (portul folosit de go-interns)
+	 - Serviciul custom pentru portul TCP/1313 folosit de hugo. 
+	 - Serviciul http si https.
+DB:  - Servciu pentru portul TCP/5432 (portul folosit de postgresql)
+Monitori: - Serviciul http, https
+
+Pentru referinta va las documentatia oficiala de la firewalld: https://firewalld.org/documentation/
+
+1.Intram in Vm Proxy 
+
+	cd /etc/firewalld/zones
+
+2.Dam start la firewall
+
+	systemctl start firewalld
+
+3. Dam enable la firewall
+
+	systemctl enable firewalld
+
+4. Verificam statusul firewall
+
+	firewall-cmd --state
+
+5.Listam toate zinele 
+
+	firewall-cmd --list-all-zones
+
+6. Creem un custom zone numit yonder
+
+	firewall-cmd --permanent --new-zone=yonder
+
+7.Verificam daca s-a creat
+
+	firewall-cmd --permanent --get-zones<s
+
+	output:
+	block yonder dmz drop external home internal public trusted 
+	work
+
+8. Reload firewall
+
+	firewall-cmd --reload
+
+9. Verificam din nou daca este zona 
+
+	firewall-cmd --permanent --get-zones
+
+10. Editam zona 
+
+	cd /etc/firewalld/zones/
+
+	vim yonder.xml
+
+11. Aici scriem urmatoarele:
+<p>
+	<?xml version="1.0" encoding="utf-8"?>
+	<zone target="ACCEPT">
+	<short>http https</short>
+	<description>Http si https sunt protocoale web</descripton>
+ 	<service name="https"/>
+	<service name="http"/>
+	</zone>
+12. Dam reload la firewall
+
+	firewall-cmd --reload
+
+13. Acum suntem gata sa folosim zona creata de noi
+
+	firewall-cmd --set-default-zone=yonder
+
+14. Punem interfata
+
+	firewall-cmd --get-zone-of-interface=<interface>
+	firewall-cmd --add-interface=eth1 --zone=yonder
+
+15. Urmarim aceeasi pasi pentru web , numai ca in yonder.xml punem:
+
+		<?xml version="1.0" encoding="utf-8"?>
+		<zone>
+		<short>Web</short>
+		<description>Firewall Web</description>
+		<service name="https"/>
+		<service name="http"/>
+		<service name="dhcp-client"/>
+		<service name="ssh"/>
+		<service name="snmp"/>
+		<port port="1313"  protocol="tcp"/>
+		<port port="18080" protocol="tcp"/>
+		</zone>
+
+16. Urmarim aceeasi pasi si pt db numai ca in yonder.xml punem :
+
+		<?xml version="1.0" encoding="utf-8"?>
+		<zone>
+		<short>DataBase</short>
+		<description>Firwall DataBase</description>
+		<service name="https"/>
+		<service name="http"/>
+		<service name="dhcp-client"/>
+		<service name="ssh"/>
+		<service name="snmp"/>
+		<port port="5432" protocol="tcp"/>
+		</zone>
+
+17. Urmarim aceeasi pasi si pt Monitor numai ca punem in yonder.xml :
+
+		<?xml version="1.0" encoding="utf-8"?>
+		<zone>
+		<short>Monitor</short>
+		<description>Firewall Monitor</description>
+		<service name="https"/>
+		<service name="http"/>
+		<service name="dhcp-client"/>
+		<service name="ssh"/>
+		<service name="snmp"/>
+		</zone>
